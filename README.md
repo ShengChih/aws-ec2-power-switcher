@@ -23,5 +23,5 @@ cdk deploy
 
 
 # Thanks & Refs
-[serverless-wsgi](https://github.com/logandk/serverless-wsgi)
-[start-stop-lambda-eventbridge](https://aws.amazon.com/tw/premiumsupport/knowledge-center/start-stop-lambda-eventbridge/)
+- [serverless-wsgi](https://github.com/logandk/serverless-wsgi)
+- [start-stop-lambda-eventbridge](https://aws.amazon.com/tw/premiumsupport/knowledge-center/start-stop-lambda-eventbridge/)
