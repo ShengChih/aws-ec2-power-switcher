@@ -12,10 +12,10 @@ directory.  To create the virtualenv it assumes that there is a `python3`
 package. If for any reason the automatic creation of the virtualenv fails,
 you can create the virtualenv manually.
 
-To manually create a virtualenv on MacOS and Linux:
+To create a virtualenv on MacOS and Linux, and install the required dependencies.:
 
 ```
-$ python3 -m venv .venv
+$ poetry install
 ```
 
 After the init process completes and the virtualenv is created, you can use the following
@@ -29,12 +29,6 @@ If you are a Windows platform, you would activate the virtualenv like this:
 
 ```
 % .venv\Scripts\activate.bat
-```
-
-Once the virtualenv is activated, you can install the required dependencies.
-
-```
-$ pip install -r requirements.txt
 ```
 
 At this point you can now synthesize the CloudFormation template for this code.
@@ -56,3 +50,14 @@ command.
  * `cdk docs`        open CDK documentation
 
 Enjoy!
+
+##
+```
+export DOMAIN="{example.com}"
+export C_ARN="arn:aws:acm:{region}:{account_id}:certificate/{identifier}"
+```
+
+## Deploy Lambda Wsgi Test Enviroment
+```
+poetry run python lambda_func/serve.py . ec2_control.api.app 5000 localhost
+```
