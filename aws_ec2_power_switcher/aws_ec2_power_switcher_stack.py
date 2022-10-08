@@ -96,7 +96,10 @@ class AwsEc2PowerSwitcherStack(Stack):
                     "lambda_func"
                 )
             ),
-            role=ec2_control_lambda_role
+            role=ec2_control_lambda_role,
+            environment={
+                'AWS_REGION': os.environ.get('AWS_REGION')
+            }
         )
 
         restapi = aws_apigateway.RestApi(
@@ -114,12 +117,6 @@ class AwsEc2PowerSwitcherStack(Stack):
             provider_arns=[user_pool.attr_arn],
             rest_api_id=restapi.rest_api_id
         )
-        # authorizer = aws_apigateway.CognitoUserPoolsAuthorizer(
-        #     self,
-        #     "ApiAuthorizer",
-        #     authorizer_name="ApiAuthorizer",
-        #     cognito_user_pools=[user_pool]
-        # )
 
         ec2_resource = restapi.root.add_resource("ec2")
 

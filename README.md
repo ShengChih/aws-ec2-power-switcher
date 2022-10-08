@@ -53,11 +53,5 @@ Enjoy!
 
 ##
 ```
-export DOMAIN="{example.com}"
-export C_ARN="arn:aws:acm:{region}:{account_id}:certificate/{identifier}"
-```
-
-## Deploy Lambda Wsgi Test Enviroment
-```
-poetry run python lambda_func/serve.py . ec2_control.api.app 5000 localhost
+export AWS_REGION="{aws-region: e.g. us-east-1}"
 ```

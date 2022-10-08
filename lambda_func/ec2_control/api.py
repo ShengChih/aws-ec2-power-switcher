@@ -1,24 +1,44 @@
-from flask import Flask, jsonify, make_response
+from flask import Flask, request, jsonify, make_response
+import boto3
+import os
 
 app = Flask(__name__)
 
-
-@app.route("/ec2")
-def hello_from_root():
-    return jsonify(message='Hello from root!')
+region = os.environ.get('AWS_REGION') or 'us-east-1'
+ec2 = boto3.client('ec2', region_name=region)
 
 
-@app.route("/ec2/poweron", , methods=['POST'])
-def power_on_ec2(instance_id):
+@app.route("/ec2/poweron", methods=['POST'])
+def power_on_ec2():
+    context = request.environ.get('serverless.context')
+    event = request.environ.get('serverless.event')
+    body = event['body']
+
+    instance_ids = body['instance_ids']
+
+    if instance_ids:
+        ec2.start_instances(InstanceIds=instance_ids)
+
     return jsonify({
-        "instance_id": instance_id
+        "message": "OK",
+        "targets": instance_ids
     })
 
 
-@app.route("/ec2/poweroff", , methods=['POST'])
-def power_off_ec2(instance_id):
+@app.route("/ec2/poweroff", methods=['POST'])
+def power_off_ec2():
+    context = request.environ.get('serverless.context')
+    event = request.environ.get('serverless.event')
+    body = event['body']
+
+    instance_ids = body['instance_ids']
+
+    if instance_ids:
+        ec2.stop_instances(InstanceIds=instance_ids)
+
     return jsonify({
-        "instance_id": instance_id
+        "message": "OK",
+        "targets": instance_ids
     })
 
 
