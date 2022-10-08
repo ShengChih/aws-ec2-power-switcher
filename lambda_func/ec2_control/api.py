@@ -15,12 +15,34 @@ def power_on_ec2():
     body = json.loads(event['body'])
     instance_ids = body['instance_ids']
 
-    if instance_ids:
-        ec2.start_instances(InstanceIds=instance_ids)
+    if not instance_ids:
+        return jsonify({
+            "message": "OK",
+            "targets": instance_ids
+        })
+
+    instances = ec2.instances.filter(
+        Filters=[{
+            'Values': ['stopped']
+        }]
+    )
+    stopped_instance_ids = set(list(map(lambda instance: instance.id, instances)))
+    target_instance_ids = set(instance_ids)
+    intersection_instance_ids = list(
+        stopped_instance_ids.intersection(target_instance_ids)
+    )
+
+    if not intersection_instance_ids:
+        return jsonify({
+            "message": "OK",
+            "targets": intersection_instance_ids
+        })
+
+    ec2.start_instances(InstanceIds=intersection_instance_ids)
 
     return jsonify({
         "message": "OK",
-        "targets": instance_ids
+        "targets": intersection_instance_ids
     })
 
 
@@ -31,12 +53,34 @@ def power_off_ec2():
     body = json.loads(event['body'])
     instance_ids = body['instance_ids']
 
-    if instance_ids:
-        ec2.stop_instances(InstanceIds=instance_ids)
+    if not instance_ids:
+        return jsonify({
+            "message": "OK",
+            "targets": instance_ids
+        })
+
+    instances = ec2.instances.filter(
+        Filters=[{
+            'Values': ['running']
+        }]
+    )
+    running_instance_ids = set(list(map(lambda instance: instance.id, instances)))
+    target_instance_ids = set(instance_ids)
+    intersection_instance_ids = list(
+        running_instance_ids.intersection(target_instance_ids)
+    )
+
+    if not intersection_instance_ids:
+        return jsonify({
+            "message": "OK",
+            "targets": intersection_instance_ids
+        })
+
+    ec2.stop_instances(InstanceIds=intersection_instance_ids)
 
     return jsonify({
         "message": "OK",
-        "targets": instance_ids
+        "targets": intersection_instance_ids
     })
 
 
