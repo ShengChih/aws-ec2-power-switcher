@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, json, jsonify, make_response
 import boto3
 import os
 
@@ -12,8 +12,7 @@ ec2 = boto3.client('ec2', region_name=region)
 def power_on_ec2():
     context = request.environ.get('serverless.context')
     event = request.environ.get('serverless.event')
-    body = event['body']
-
+    body = json.loads(event['body'])
     instance_ids = body['instance_ids']
 
     if instance_ids:
@@ -29,8 +28,7 @@ def power_on_ec2():
 def power_off_ec2():
     context = request.environ.get('serverless.context')
     event = request.environ.get('serverless.event')
-    body = event['body']
-
+    body = json.loads(event['body'])
     instance_ids = body['instance_ids']
 
     if instance_ids:
@@ -45,5 +43,3 @@ def power_off_ec2():
 @app.errorhandler(404)
 def resource_not_found(e):
     return make_response(jsonify(error='Not found!'), 404)
-
-
