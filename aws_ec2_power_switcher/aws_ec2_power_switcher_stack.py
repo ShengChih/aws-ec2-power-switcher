@@ -84,6 +84,20 @@ class AwsEc2PowerSwitcherStack(Stack):
             roles=[ec2_control_lambda_role]
         )
 
+        py37_layer = aws_lambda.LayerVersion(
+            self,
+            'py37_layer',
+            compatible_architectures=[aws_lambda.Architecture.X86_64],
+            compatible_runtimes=[aws_lambda.Runtime.PYTHON_3_7],
+            code=aws_lambda.Code.from_asset(
+                os.path.join(
+                    Path(os.path.dirname(__file__)).parent,
+                    "lambda_layer",
+                    "py37"
+                )
+            ),
+            description="Flask + Werkzeug library"
+        )
         ec2_control = aws_lambda.Function(
             self,
             id='ec2_control',
@@ -99,7 +113,8 @@ class AwsEc2PowerSwitcherStack(Stack):
             role=ec2_control_lambda_role,
             environment={
                 'AWS_REGION': os.environ.get('AWS_REGION')
-            }
+            },
+            layers=[py37_layer]
         )
 
         restapi = aws_apigateway.RestApi(

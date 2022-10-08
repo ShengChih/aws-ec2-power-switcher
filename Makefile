@@ -1,5 +1,9 @@
+output_layer:
+	poetry export -f requirements.txt --without-hashes --output requirements.txt && \
+	pip install -r requirements.txt -t lambda_layer/py37
+
 # Zip Archive python lambda layer
-layer:
+zip_layer:
 	poetry export -f requirements.txt --without-hashes --output requirements.txt && \
 	pip install -r requirements.txt -t lambda_layer/python && \
 	cd lambda_layer && \
