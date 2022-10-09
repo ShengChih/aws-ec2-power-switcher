@@ -4,8 +4,9 @@ from aws_cdk import (
     aws_cognito,
     aws_lambda,
     aws_apigateway,
-    aws_certificatemanager,
-    aws_iam
+    # aws_certificatemanager,
+    aws_iam,
+    aws_logs
 )
 from constructs import Construct
 from pathlib import Path
@@ -55,7 +56,7 @@ class AwsEc2PowerSwitcherStack(Stack):
         # create role
         ec2_control_lambda_role = aws_iam.Role(
             self,
-            "LambdaForEC2Role",
+            "LambdaAccessEC2AndCloudWatch2Role",
             assumed_by=aws_iam.ServicePrincipal("lambda.amazonaws.com")
         )
 
@@ -117,10 +118,16 @@ class AwsEc2PowerSwitcherStack(Stack):
             layers=[py37_layer]
         )
 
+        # production stage
+        api_log_group = aws_logs.LogGroup(self, "AdminApiLog")
         restapi = aws_apigateway.RestApi(
             self,
             id='AdminApi',
             rest_api_name='AdminApi',
+            deploy_options=aws_apigateway.StageOptions(
+                access_log_destination=aws_apigateway.LogGroupLogDestination(api_log_group),
+                access_log_format=aws_apigateway.AccessLogFormat.json_with_standard_fields()
+            )
         )
 
         authorizer = aws_apigateway.CfnAuthorizer(
