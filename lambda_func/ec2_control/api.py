@@ -1,4 +1,6 @@
 from flask import Flask, request, json, jsonify, make_response
+from functools import reduce
+
 import boto3
 import os
 
@@ -6,6 +8,24 @@ app = Flask(__name__)
 
 region = os.environ.get('AWS_REGION') or 'us-east-1'
 ec2 = boto3.client('ec2', region_name=region)
+
+
+def parser_describe_response(response):
+    return reduce(
+        lambda ret, instance_list: ret.union(instance_list),
+        list(
+            map(
+                lambda reservation: list(
+                    map(
+                        lambda instance: instance['InstanceId'],
+                        reservation['Instances']
+                    )
+                ),
+                response['Reservations']
+            )
+        ),
+        set()
+    )
 
 
 @app.route("/ec2/poweron", methods=['POST'])
@@ -21,12 +41,16 @@ def power_on_ec2():
             "targets": instance_ids
         })
 
-    instances = ec2.instances.filter(
-        Filters=[{
-            'Values': ['stopped']
-        }]
+    response = ec2.describe_instances(
+        Filters=[
+            {
+                'Name': 'instance-state-name',
+                'Values': ['stopped'],
+            }
+        ],
     )
-    stopped_instance_ids = set(list(map(lambda instance: instance.id, instances)))
+
+    stopped_instance_ids = parser_describe_response(response)
     target_instance_ids = set(instance_ids)
     intersection_instance_ids = list(
         stopped_instance_ids.intersection(target_instance_ids)
@@ -59,12 +83,15 @@ def power_off_ec2():
             "targets": instance_ids
         })
 
-    instances = ec2.instances.filter(
-        Filters=[{
-            'Values': ['running']
-        }]
+    response = ec2.describe_instances(
+        Filters=[
+            {
+                'Name': 'instance-state-name',
+                'Values': ['running'],
+            }
+        ],
     )
-    running_instance_ids = set(list(map(lambda instance: instance.id, instances)))
+    running_instance_ids = parser_describe_response(response)
     target_instance_ids = set(instance_ids)
     intersection_instance_ids = list(
         running_instance_ids.intersection(target_instance_ids)

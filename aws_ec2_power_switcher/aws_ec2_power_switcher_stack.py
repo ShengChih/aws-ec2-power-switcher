@@ -119,7 +119,8 @@ class AwsEc2PowerSwitcherStack(Stack):
                 aws_iam.PolicyStatement(
                     actions=[
                         "ec2:StartInstances",
-                        "ec2:StopInstances"
+                        "ec2:StopInstances",
+                        "ec2:DescribeInstances"
                     ],
                     resources=["*"]
                 )
