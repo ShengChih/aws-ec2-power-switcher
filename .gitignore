@@ -142,4 +142,5 @@ dmypy.json
 
 # self-definition
 requirements.txt
-layer.zip
+*.zip
+lambda_layer/python

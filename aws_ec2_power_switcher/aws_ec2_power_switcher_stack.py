@@ -20,7 +20,7 @@ class AwsEc2PowerSwitcherStack(Stack):
             self,
             "ApiUserPool",
             self_sign_up_enabled=False,
-            user_pool_name="ApiUserPool",
+            user_pool_name="ApiUserPool"
         )
         user_pool_cfn = user_pool.node.default_child
         user_pool_cfn.alias_attributes = ["email"]
@@ -42,10 +42,7 @@ class AwsEc2PowerSwitcherStack(Stack):
         user_pool_client = aws_cognito.UserPoolClient(
             self,
             "ApiUserClient",
-            user_pool=user_pool,
-            auth_flows=aws_cognito.AuthFlow(
-                user_password=True
-            ),
+            user_pool=user_pool
         )
         cfn_user_pool_client = user_pool_client.node.default_child
         cfn_user_pool_client.explicit_auth_flows = [
@@ -138,8 +135,7 @@ class AwsEc2PowerSwitcherStack(Stack):
             code=aws_lambda.Code.from_asset(
                 os.path.join(
                     Path(os.path.dirname(__file__)).parent,
-                    "lambda_layer",
-                    "python"
+                    "lambda_layer"
                 )
             ),
             description="Flask + Werkzeug library"
