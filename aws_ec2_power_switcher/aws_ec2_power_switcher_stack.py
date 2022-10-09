@@ -139,7 +139,7 @@ class AwsEc2PowerSwitcherStack(Stack):
                 os.path.join(
                     Path(os.path.dirname(__file__)).parent,
                     "lambda_layer",
-                    "py37"
+                    "python"
                 )
             ),
             description="Flask + Werkzeug library"
