@@ -234,5 +234,21 @@ class AwsEc2PowerSwitcherStack(Stack):
             'AuthorizerId',
             authorizer.ref
         )
-        
 
+        ec2_info_resource = ec2_resource.add_resource("info")
+        ec2_info_method = ec2_info_resource.add_method(
+            "GET",
+            integration=aws_apigateway.LambdaIntegration(
+                handler=ec2_control
+            )
+        )
+        ec2_info_method_resource = ec2_info_method.node \
+            .find_child('Resource')
+        ec2_info_method_resource.add_property_override(
+            'AuthorizationType',
+            'COGNITO_USER_POOLS'
+        )
+        ec2_info_method_resource.add_property_override(
+            'AuthorizerId',
+            authorizer.ref
+        )
