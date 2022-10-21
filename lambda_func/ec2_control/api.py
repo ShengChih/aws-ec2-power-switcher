@@ -10,14 +10,106 @@ app = Flask(__name__)
 
 region = os.environ.get('AWS_REGION') or 'us-east-1'
 ec2 = boto3.client('ec2', region_name=region)
+ec2_resource = boto3.resource('ec2', region_name=region)
+
+
+def get_ip_permissions(myip):
+    return [
+        {
+            "FromPort": 80,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+                {"CidrIp": "173.245.48.0/20", "Description": "Cloudflare"},
+                {"CidrIp": "103.21.244.0/22", "Description": "Cloudflare"},
+                {"CidrIp": "103.22.200.0/22", "Description": "Cloudflare"},
+                {"CidrIp": "103.31.4.0/22", "Description": "Cloudflare"},
+                {"CidrIp": "141.101.64.0/18", "Description": "Cloudflare"},
+                {"CidrIp": "108.162.192.0/18", "Description": "Cloudflare"},
+                {"CidrIp": "190.93.240.0/20", "Description": "Cloudflare"},
+                {"CidrIp": "188.114.96.0/20", "Description": "Cloudflare"},
+                {"CidrIp": "197.234.240.0/22", "Description": "Cloudflare"},
+                {"CidrIp": "198.41.128.0/17", "Description": "Cloudflare"},
+                {"CidrIp": "162.158.0.0/15", "Description": "Cloudflare"},
+                {"CidrIp": "104.16.0.0/13", "Description": "Cloudflare"},
+                {"CidrIp": "104.24.0.0/14", "Description": "Cloudflare"},
+                {"CidrIp": "172.64.0.0/13", "Description": "Cloudflare"},
+                {"CidrIp": "36.236.238.214/32"}
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 80,
+            "UserIdGroupPairs": []
+        },
+        {
+            "FromPort": 22,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+                {"CidrIp": f"{myip}/32", "Description": "myip"}
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 22, "UserIdGroupPairs": []
+        },
+        {
+            "FromPort": 3000,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+                {"CidrIp": f"{myip}/32", "Description": "myip"}
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 3000,
+            "UserIdGroupPairs": []
+        },
+        {
+            "FromPort": 443,
+            "IpProtocol": "tcp",
+            "IpRanges": [
+                {"CidrIp": "173.245.48.0/20", "Description": "Cloudflare"},
+                {"CidrIp": "103.21.244.0/22", "Description": "Cloudflare"},
+                {"CidrIp": "103.22.200.0/22", "Description": "Cloudflare"},
+                {"CidrIp": "103.31.4.0/22", "Description": "Cloudflare"},
+                {"CidrIp": "141.101.64.0/18", "Description": "Cloudflare"},
+                {"CidrIp": "108.162.192.0/18", "Description": "Cloudflare"},
+                {"CidrIp": "190.93.240.0/20", "Description": "Cloudflare"},
+                {"CidrIp": "188.114.96.0/20", "Description": "Cloudflare"},
+                {"CidrIp": "197.234.240.0/22", "Description": "Cloudflare"},
+                {"CidrIp": "198.41.128.0/17", "Description": "Cloudflare"},
+                {"CidrIp": "162.158.0.0/15", "Description": "Cloudflare"},
+                {"CidrIp": "104.16.0.0/13", "Description": "Cloudflare"},
+                {"CidrIp": "104.24.0.0/14", "Description": "Cloudflare"},
+                {"CidrIp": "172.64.0.0/13", "Description": "Cloudflare"},
+                {"CidrIp": "36.236.238.214/32"}
+            ],
+            "Ipv6Ranges": [],
+            "PrefixListIds": [],
+            "ToPort": 443,
+            "UserIdGroupPairs": []
+        }
+    ]
 
 
 def parser_describe_response(response):
+    reservaitions = response['Reservations']
+
     ret = dict()
     for reservation in response['Reservations']:
         for instance in reservation['Instances']:
-            ret[instance['InstanceId']] = instance['PublicIpAddress'] \
+            instance_info = dict()
+            instance_info.update({
+                'PublicIpAddress': instance['PublicIpAddress']
                 if 'PublicIpAddress' in instance else None
+            })
+
+            sg = []
+            for security_group in instance['SecurityGroups']:
+                sg.append(security_group['GroupId'])
+
+            instance_info.update({
+                'SecurityGroups': sg
+            })
+
+            ret[instance['InstanceId']] = instance_info
 
     return ret
 
@@ -122,21 +214,22 @@ def power_on_ec2():
     event = request.environ.get('serverless.event')
     body = json.loads(event['body'])
     instance_ids = body['instance_ids']
+    myip = body['myip'] if 'myip' in body else None
 
     try:
         if not instance_ids:
             raise
 
-        response = ec2.describe_instances(
+        response = parser_describe_response(ec2.describe_instances(
             Filters=[
                 {
                     'Name': 'instance-state-name',
                     'Values': ['stopped'],
                 }
             ],
-        )
+        ))
 
-        stopped_instance_ids = set(parser_describe_response(response).keys())
+        stopped_instance_ids = set(response.keys())
         target_instance_ids = set(instance_ids)
         intersection_instance_ids = list(
             stopped_instance_ids.intersection(target_instance_ids)
@@ -146,6 +239,26 @@ def power_on_ec2():
             raise
 
         ec2.start_instances(InstanceIds=intersection_instance_ids)
+
+        if not myip:
+            return jsonify({
+                "message": "OK, but doesn't set sg.",
+                "targets": intersection_instance_ids
+            })
+
+        sg_set = set()
+        for instance_id, instance_info in response.items():
+            for sg in instance_info['SecurityGroups']:
+                security_group = ec2_resource.SecurityGroup(sg)
+
+                if security_group.ip_permissions:
+                    security_group.revoke_ingress(
+                        IpPermissions=security_group.ip_permissions
+                    )
+
+                security_group.authorize_ingress(
+                    IpPermissions=get_ip_permissions(myip)
+                )
 
         return jsonify({
             "message": "OK",
@@ -217,7 +330,8 @@ def describe_ec2():
 
         return jsonify({
             "message": "OK",
-            "targets": describe_list
+            "targets": describe_list,
+            # "detail": response
         })
     except Exception:
         return jsonify({
