@@ -120,7 +120,12 @@ class AwsEc2PowerSwitcherStack(Stack):
                     actions=[
                         "ec2:StartInstances",
                         "ec2:StopInstances",
-                        "ec2:DescribeInstances"
+                        "ec2:DescribeInstances",
+                        "ec2:RevokeSecurityGroupIngress",
+                        "ec2:AuthorizeSecurityGroupIngress",
+                        "ec2:ModifySecurityGroupRules",
+                        "ec2:DescribeSecurityGroups",
+                        "ec2:UpdateSecurityGroupRuleDescriptionsIngress"
                     ],
                     resources=["*"]
                 )
